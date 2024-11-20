@@ -88,6 +88,26 @@ bot.command("payment", async (ctx) => {
   }
 });
 
+// Handle /help command
+bot.command("help", (ctx) => {
+  try {
+    const helpMessage = `
+      Welcome to SendOver! Here's how you can use the bot:
+      
+      1. /order - View available packages and make an order.
+      2. /trackshipment - Track the status of your order by providing your Order ID.
+      3. /payment - Choose a payment method to support us via Buy Me a Coffee or Patreon.
+      
+      Simply click on the corresponding button to interact with the bot. If you need any further assistance, feel free to ask!
+    `;
+    ctx.reply(helpMessage);
+  } catch (error) {
+    console.error("Error processing help command:", error);
+    ctx.reply("An error occurred while processing the help request. Please try again later.");
+  }
+});
+
+
 // Handle text input from the user for Order ID
 bot.on('text', async (ctx) => {
   const userMessage = ctx.message.text.trim();
