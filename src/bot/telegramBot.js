@@ -70,6 +70,24 @@ bot.command('trackshipment', async (ctx) => {
   }
 });
 
+bot.command("payment", async (ctx) => {
+  try {
+    // Create inline keyboard with two payment options
+    const paymentKeyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.url("Buy Me a Coffee", "https://www.buymeacoffee.com/your_username"), // Replace with your Buy Me a Coffee link
+        Markup.button.url("Patreon", "https://www.patreon.com/your_username") // Replace with your Patreon link
+      ]
+    ]);
+
+    // Send message with payment options
+    await ctx.reply("Please choose your payment method:", paymentKeyboard);
+  } catch (error) {
+    console.error("Error processing payment command:", error);
+    ctx.reply("An error occurred while processing the payment options. Please try again later.");
+  }
+});
+
 // Handle text input from the user for Order ID
 bot.on('text', async (ctx) => {
   const userMessage = ctx.message.text.trim();
