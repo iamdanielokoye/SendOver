@@ -1,7 +1,8 @@
 const { queryOpenRouter } = require("../ai/queryOpenRouter")
 const { fallbackAIService } = require("../ai/fallbackAIService")
 const { feedbackService } = require("../utils/feedbackService")
-const { Telegraf } = require('telegraf');
+const { handleOrder, showPackages } = require('../features/orderHandler');
+const { Telegraf, Markup } = require('telegraf');
 const axios = require('axios');
 require('dotenv').config();
 
@@ -23,6 +24,15 @@ bot.command('feedback', (ctx) => {
     ctx.session = ctx.session || {};
     ctx.session.isCollectingFeedback = true;
   });
+  bot.command("order", (ctx) => {
+    ctx.reply("Available packages:", showPackages());
+});  
+
+  bot.action(/order_(\d+)/, (ctx) => {
+    const packageId = ctx.match[1]; // Extract the package ID from the callback data
+    const orderConfirmation = handleOrder(packageId);
+    ctx.reply(orderConfirmation); // Send the order confirmation message
+});
 
 // Bot listens for messages
 bot.on("text", async (ctx) => {
@@ -57,8 +67,6 @@ bot.on("text", async (ctx) => {
         await saveFeedback(ctx.message.from.id, ctx.message.text);
         ctx.reply("Thank you for your feedback!");
         ctx.session.isCollectingFeedback = false;
-      } else {
-        ctx.reply("To provide feedback, use the /feedback command.");
       }
   });
   

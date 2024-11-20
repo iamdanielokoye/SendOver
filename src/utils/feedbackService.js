@@ -1,15 +1,26 @@
-const { MongoClient } = require('mongodb');
 require('dotenv').config();
+const { MongoClient, ServerApiVersion } = require('mongodb');
 
-const client = new MongoClient(process.env.MONGODB_URI);
-const dbName = 'sendoverDB';
-const collectionName = 'feedback';
+const password = process.env.MONGODB_PASSWORD;
+const uri = `mongodb+srv://okoyedann:${password}@cluster0.7i9u8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
 
 async function saveFeedback(userId, feedback) {
   try {
     await client.connect();
-    const db = client.db(dbName);
-    const collection = db.collection(collectionName);
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+    // Here we use 'sendoverDB' for the database name and 'feedbacks' for the collection
+    const db = client.db("sendoverDB");
+    const collection = db.collection("feedbacks");
 
     const feedbackEntry = {
       userId: userId,
@@ -17,6 +28,7 @@ async function saveFeedback(userId, feedback) {
       timestamp: new Date(),
     };
 
+    // Insert feedback, which will create both the database and collection if they don't exist
     await collection.insertOne(feedbackEntry);
     console.log("Feedback saved:", feedbackEntry);
   } catch (error) {
