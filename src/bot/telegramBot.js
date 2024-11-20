@@ -1,8 +1,9 @@
 const { queryOpenRouter } = require("../ai/queryOpenRouter")
 const { fallbackAIService } = require("../ai/fallbackAIService")
 const { feedbackService } = require("../utils/feedbackService")
-const { handleOrder, showPackages } = require('../features/orderHandler');
+const { showPackages, handleOrder, dummyPackages } = require('../features/orderHandler');
 const { Telegraf, Markup } = require('telegraf');
+const mongoose = require("mongoose");
 const axios = require('axios');
 require('dotenv').config();
 
@@ -24,15 +25,38 @@ bot.command('feedback', (ctx) => {
     ctx.session = ctx.session || {};
     ctx.session.isCollectingFeedback = true;
   });
-  bot.command("order", (ctx) => {
-    ctx.reply("Available packages:", showPackages());
-});  
 
-  bot.action(/order_(\d+)/, (ctx) => {
-    const packageId = ctx.match[1]; // Extract the package ID from the callback data
-    const orderConfirmation = handleOrder(packageId);
-    ctx.reply(orderConfirmation); // Send the order confirmation message
+  bot.command("order", async (ctx) => {
+    try {
+        const userId = ctx.from.id;  // Track the user ID
+        const availablePackages = showPackages(userId); // Pass userId to showPackages
+        ctx.reply("Available packages:", availablePackages);
+    } catch (error) {
+        console.error("Error fetching packages:", error);
+        ctx.reply("Failed to retrieve packages. Please try again later.");
+    }
 });
+
+bot.action(/order_(\d+)/, async (ctx) => {
+  const packageId = ctx.match[1]; // Extract package ID from the callback data
+  const selectedPackage = dummyPackages.find(pkg => pkg.id === parseInt(packageId, 10));
+  
+  if (!selectedPackage) {
+      return ctx.reply("Invalid package selected.");
+  }
+  
+  // Await the result of the order processing
+  const orderConfirmation = await handleOrder(ctx.from.id, selectedPackage.id, selectedPackage.name);
+  
+  // Send the order confirmation message
+  ctx.reply(orderConfirmation); // Send order confirmation
+});
+
+bot.action(/disabled_(\d+)/, (ctx) => {
+    // If the user tries to select a package that has already been chosen
+    ctx.reply("You have already placed an order. Please use the 'order' command again if you wish to choose another package.");
+});
+
 
 // Bot listens for messages
 bot.on("text", async (ctx) => {
