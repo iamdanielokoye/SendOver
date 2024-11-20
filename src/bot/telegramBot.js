@@ -2,6 +2,7 @@ const { queryOpenRouter } = require("../ai/queryOpenRouter")
 const { fallbackAIService } = require("../ai/fallbackAIService")
 const { feedbackService } = require("../utils/feedbackService")
 const { showPackages, handleOrder, dummyPackages } = require('../features/orderHandler');
+const { getShipmentStatus } = require('../features/shipmentTracking');
 const { Telegraf, Markup } = require('telegraf');
 const mongoose = require("mongoose");
 const axios = require('axios');
@@ -59,40 +60,60 @@ bot.action(/disabled_(\d+)/, (ctx) => {
 
 
 // Bot listens for messages
-bot.on("text", async (ctx) => {
-    const userMessage = ctx.message.text;
-  
-    try {
+bot.command('trackshipment', async (ctx) => {
+  try {
+    // Ask the user for their Order ID
+    ctx.reply('Please enter your Order ID to track the shipment (e.g., ORD-12345):');
+  } catch (error) {
+    console.error('Error handling trackshipment command:', error);
+    ctx.reply("An error occurred while processing your request. Please try again later.");
+  }
+});
+
+// Handle text input from the user for Order ID
+bot.on('text', async (ctx) => {
+  const userMessage = ctx.message.text.trim();
+
+  try {
+    // If the message starts with an order ID (e.g., ORD-12345), process the shipment status
+    if (userMessage.startsWith('ORD-')) {
+      const statusMessage = await getShipmentStatus(userMessage); // Call the function to check shipment status
+      ctx.reply(statusMessage); // Send the status back to the user
+    } else {
+      // Handle other messages or general queries (like OpenRouter, fallback AI, etc.)
       let openRouterResponse = null;
-  
+
       try {
         openRouterResponse = await queryOpenRouter(userMessage);
         if (!openRouterResponse) {
           console.log("OpenRouter response was invalid, switching to fallback.");
           throw new Error("OpenRouter failed.");
         }
-  
+
         console.log("OpenRouter Response:", openRouterResponse);
         ctx.reply(openRouterResponse); // Send OpenRouter response
       } catch (error) {
         console.error("OpenRouter failed:", error.message);
         ctx.reply("Sorry, OpenRouter didn't respond properly. Switching to backup AI.");
-  
+
         const fallbackAIResponse = await queryFallbackAI(userMessage);
         console.log("Fallback AI Response:", fallbackAIResponse);
         ctx.reply(fallbackAIResponse); // Send fallback AI response
       }
-    } catch (error) {
-      console.error("General bot error:", error);
-      ctx.reply("An error occurred while processing your request. Please try again later.");
     }
-    if (ctx.session?.isCollectingFeedback) {
-        // Save feedback and reset the session flag
-        await saveFeedback(ctx.message.from.id, ctx.message.text);
-        ctx.reply("Thank you for your feedback!");
-        ctx.session.isCollectingFeedback = false;
-      }
-  });
+  } catch (error) {
+    console.error("General bot error:", error);
+    ctx.reply("An error occurred while processing your request. Please try again later.");
+  }
+
+  // Feedback collection logic
+  if (ctx.session?.isCollectingFeedback) {
+    // Save feedback and reset the session flag
+    await saveFeedback(ctx.message.from.id, ctx.message.text);
+    ctx.reply("Thank you for your feedback!");
+    ctx.session.isCollectingFeedback = false;
+  }
+});
   
   bot.command('exit', (ctx) => {
     ctx.reply("Shutting down the bot...").then(() => {

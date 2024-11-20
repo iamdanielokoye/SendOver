@@ -1,18 +1,33 @@
-// Mock tracking data (this would be replaced by real data)
-const shipments = {
-    '12345': { status: 'In transit', location: 'New York, USA' },
-    '67890': { status: 'Delivered', location: 'Lagos, Nigeria' },
-  };
-  
-  // Function to track shipment by serial number
-  async function trackShipment(serialNumber) {
-    const shipment = shipments[serialNumber];
-    if (shipment) {
-      return `Your shipment with serial number ${serialNumber} is currently ${shipment.status} at ${shipment.location}.`;
-    } else {
-      return `Sorry, we couldn't find any information for shipment ${serialNumber}.`;
+const { Client } = require('pg'); // PostgreSQL client
+
+// Assuming the database connection is already established in another file
+
+// Function to get the shipment status from the database
+const getShipmentStatus = async (orderId) => {
+  const client = new Client({
+    host: process.env.PG_HOST,
+    port: process.env.PG_PORT || 5432,
+    user: process.env.PG_USER,
+    password: process.env.PG_PASSWORD,
+    database: process.env.PG_DATABASE,
+  });
+
+  try {
+    await client.connect();
+    const res = await client.query('SELECT status FROM orders WHERE order_id = $1', [orderId]);
+
+    if (res.rows.length === 0) {
+      return `No order found with the Order ID: ${orderId}. Please check and try again.`;
     }
+
+    const status = res.rows[0].status;
+    return `The current status of your order (ID: ${orderId}) is: ${status}.`;
+  } catch (error) {
+    console.error('Error tracking shipment:', error);
+    return 'Failed to retrieve shipment status. Please try again later.';
+  } finally {
+    await client.end();
   }
-  
-  module.exports = { trackShipment };
-  
+};
+
+module.exports = { getShipmentStatus };
