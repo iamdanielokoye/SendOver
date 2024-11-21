@@ -1,9 +1,17 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const { Telegraf, Markup } = require('telegraf');
+const mongoose = require("mongoose");
+const axios = require('axios');
 dotenv.config();
 
+const { queryOpenRouter } = require("./ai/queryOpenRouter")
+const { fallbackAIService } = require("./ai/fallbackAIService")
+const { feedbackService } = require("./utils/feedbackService")
+const { showPackages, handleOrder, dummyPackages } = require('./features/orderHandler');
+const { getShipmentStatus } = require('./features/shipmentTracking');
 const telegramBot = require('./bot/telegramBot');
-const { trackShipment } = require('./tracking/shipmentTracking');
+const { trackShipment } = require('./features/shipmentTracking');
 const { processPayment } = require('./payment/paymentProcessing');
 
 const app = express();
